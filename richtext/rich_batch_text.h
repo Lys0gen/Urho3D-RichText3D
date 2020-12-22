@@ -2,7 +2,7 @@
 #define __RICH_WIDGET_TEXT_H__
 #pragma once
 
-#include "engine/richtext/rich_batch.h"
+#include "rich_batch.h"
 #include "Urho3D/Graphics/Material.h"
 
 namespace Urho3D

@@ -66,6 +66,8 @@ public:
     virtual bool IsEmpty() const;
     /// Get UI batches from this widget.
     virtual void GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor);
+    /// Get UI batches from this widget.
+    virtual void GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor, UIElement* uiElement);
 protected:
     friend class RichWidget;
     /// Used in RichWidget for caching.
@@ -80,6 +82,8 @@ protected:
     int use_count_;
     /// number of batches in the last GetBatches call.
     int num_batches_;
+
+    UIElement* uiElement_;
 };
 
 } // namespace Urho3D

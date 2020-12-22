@@ -3,6 +3,8 @@
 #include "rich_image_provider.h"
 #include "Urho3D/Graphics/Drawable.h"
 #include "Urho3D/Core/Context.h"
+#include "Urho3D/Graphics/Texture.h"
+#include "Urho3D/Graphics/Texture2D.h"
 
 namespace Urho3D {
 
@@ -12,7 +14,7 @@ void RichWidgetImage::RegisterObject(Context* context)
     context->RegisterFactory<RichWidgetImage>();
 }
 
-RichWidgetImage::RichWidgetImage(Context* context) 
+RichWidgetImage::RichWidgetImage(Context* context)
  : RichWidgetBatch(context)
 {
      ResourceCache* cache = GetSubsystem<ResourceCache>();
@@ -39,7 +41,7 @@ void RichWidgetImage::SetImageSource(const String& sourceUrl)
     if (!texture_/* || sourceUrl != texture_->GetName()*/)
     {
         if (context_->GetSubsystem<ResourceCache>()->Exists(sourceUrl))
-            texture_ = context_->GetSubsystem<ResourceCache>()->GetResource<Texture2D>(sourceUrl);
+            texture_ = static_cast<Texture*>(context_->GetSubsystem<ResourceCache>()->GetResource<Texture2D>(sourceUrl));
         else {
           // request image from the RichImageProvider subsystem
           auto image_provider = context_->GetSubsystem<RichImageProvider>();
@@ -62,10 +64,10 @@ void RichWidgetImage::AddImage(const Vector3 pos, float width, float height)
     if (parent_widget_ && parent_widget_->GetShadowEnabled())
     {
         AddQuad(
-          Rect(pos.x_ + parent_widget_->GetShadowOffset().x_, 
-              pos.y_ + parent_widget_->GetShadowOffset().y_, 
+          Rect(pos.x_ + parent_widget_->GetShadowOffset().x_,
+              pos.y_ + parent_widget_->GetShadowOffset().y_,
               pos.x_ + parent_widget_->GetShadowOffset().x_ + width,
-              pos.y_ + parent_widget_->GetShadowOffset().y_ + height), 
+              pos.y_ + parent_widget_->GetShadowOffset().y_ + height),
             pos.z_ + 0.01f,
             Rect(0, 0, 0, 0), // NOTE: UV is empty
             parent_widget_->GetShadowColor());

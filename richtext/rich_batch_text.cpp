@@ -1,8 +1,13 @@
 #include "rich_batch_text.h"
-#include "core/profiler.h"
-#include "core/logger.h"
+#include "Urho3D/core/profiler.h"
+//#include "Urho3D/core/logger.h"
 #include "rich_widget.h"
 #include "rich_font_provider.h"
+#include "Urho3D/Graphics/Technique.h"
+#include "Urho3D/Graphics/Graphics.h"
+#include "Urho3D/UI/FontFace.h"
+#include "Urho3D/Graphics/Texture.h"
+#include "Urho3D/Graphics/Texture2D.h"
 
 namespace Urho3D
 {
@@ -134,7 +139,7 @@ void RichWidgetText::AddText(const String& text, const Vector3& pos, const Color
       unicodeText.Push(text.NextUTF8Char(i));
 
     // shadow pass behind the actual text
-    // TODO: all shadow passes should be made equal z-order number which is 
+    // TODO: all shadow passes should be made equal z-order number which is
     // below all render items in this widget
     if (parent_widget_ && parent_widget_->GetShadowEnabled()) {
         for (unsigned i = 0; i < unicodeText.Size(); ++i) {
@@ -193,8 +198,9 @@ Vector2 RichWidgetText::CalculateTextExtents(const String& text)
         return res;
 
     PODVector<unsigned> unicodeText;
-    for (unsigned i = 0; i < text.Length();)
+    for (unsigned i = 0; i < text.Length();){
       unicodeText.Push(text.NextUTF8Char(i));
+    }
 
     for (unsigned i = 0; i < unicodeText.Size(); ++i)
     {

@@ -1,4 +1,5 @@
 #include "rich_html_parser.h"
+#include <Urho3D/Core/StringUtils.h>
 
 namespace Urho3D
 {
@@ -152,7 +153,7 @@ void HTMLParser::Parse(const String& text, Vector<TextBlock>& blocks, const Bloc
             // push the current block everytime new block appears
             blocks.Push(block);
         }
-        
+
         if (tag == "b")
         {
             block.format.font.bold = !closing_tag;
@@ -346,7 +347,7 @@ void HTMLParser::Parse(const String& text, Vector<TextBlock>& blocks, const Bloc
         pos = tag_end + 1;
         last_tag_end = tag_end + 1;
     }
-    
+
     // copy anything after the last tag
     if (last_tag_end < text.Length())
     {

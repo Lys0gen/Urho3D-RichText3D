@@ -1,7 +1,11 @@
-#include "engine/richtext/rich_text3d.h"
-#include "engine/richtext/rich_batch_text.h"
-#include "engine/richtext/rich_batch_image.h"
+#include "rich_text3d.h"
+#include "rich_batch_text.h"
+#include "rich_batch_image.h"
+#include "Urho3D/UI/Font.h"
 #include "Urho3D/Core/StringUtils.h"
+#include "Urho3D/Scene/SceneEvents.h"
+#include "Urho3D/Graphics/Renderer.h"
+#include "Urho3D/Core/CoreEvents.h"
 #include "rich_html_parser.h"
 
 namespace Urho3D
@@ -35,7 +39,7 @@ inline void splitwords(const String& str, T& tokens, const String& delimiters = 
     if(pos == String::NPOS) {
       pos = str.Length();
       if(pos != lastPos || !trimEmpty)
-        tokens.Push(typename T::ValueType(str.CString() + lastPos, 
+        tokens.Push(typename T::ValueType(str.CString() + lastPos,
           pos - lastPos));
 
       break;
@@ -390,7 +394,7 @@ void RichText3D::ArrangeTextBlocks(Vector<TextBlock>& markup_blocks)
                 assert(width_remain >= 0);
                 // remove a char from this word until it can be fit in the current line
                 Vector2 newwordsize;
-                while (width_remain > 0 && !the_word.Empty()) {
+                while (width_remain > 0 && !fit_word.Empty()) {
                   fit_word.Erase(fit_word.Length() - 1);
                   newwordsize = text_renderer->CalculateTextExtents(fit_word);
                   width_remain = (int)newwordsize.x_ - layout_width;
@@ -602,7 +606,7 @@ void RichText3D::CompileTextLayout() {
   Vector<TextBlock> markup_blocks;
   markup_blocks.Reserve(10);
 
-  HTMLParser::Parse(text_, markup_blocks, default_format_);  
+  HTMLParser::Parse(text_, markup_blocks, default_format_);
   ArrangeTextBlocks(markup_blocks);
   DrawTextLines();
   ClearFlags(WidgetFlags_ContentChanged);
@@ -635,7 +639,7 @@ void RichText3D::UpdateTickerAnimation(Urho3D::StringHash eventType, Urho3D::Var
         horizontal_dir = -1;
       else
         horizontal_dir = 1;
-    } 
+    }
     else if (ticker_type_ == TickerType_Vertical)
     {
       if (ticker_direction_ == TickerDirection_Negative)

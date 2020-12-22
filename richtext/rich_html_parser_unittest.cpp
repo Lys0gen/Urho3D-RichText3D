@@ -240,7 +240,7 @@ TEST(RichTextHTMLParser, BugHTMLFriendsTitle) {
     blocks, Urho3D::BlockFormat());
   ASSERT_EQ(blocks.Size(), 13);
 
-  
+
   EXPECT_STREQ(blocks[0].format.font.face.CString(), "GF@Gloria Hallelujah");
   EXPECT_STREQ(blocks[1].format.font.face.CString(), "GF@Gloria Hallelujah");
   EXPECT_STREQ(blocks[2].format.font.face.CString(), "GF@Gloria Hallelujah");
@@ -253,5 +253,5 @@ TEST(RichTextHTMLParser, BugHTMLFriendsTitle) {
   EXPECT_STREQ(blocks[9].format.font.face.CString(), "GF@Gloria Hallelujah");
   EXPECT_STREQ(blocks[10].format.font.face.CString(), "GF@Gloria Hallelujah");
   EXPECT_STREQ(blocks[11].format.font.face.CString(), "GF@Gloria Hallelujah");
-  EXPECT_STREQ(blocks[12].format.font.face.CString(), "GF@Gloria Hallelujah");  
+  EXPECT_STREQ(blocks[12].format.font.face.CString(), "GF@Gloria Hallelujah");
 }

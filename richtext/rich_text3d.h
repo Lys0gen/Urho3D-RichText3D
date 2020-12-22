@@ -2,88 +2,10 @@
 #define __RICH_TEXT_3D_H__
 #pragma once
 
-#include "engine/richtext/rich_widget.h"
+#include "rich_widget.h"
 
 namespace Urho3D {
 
-/// Ticker type
-enum TickerType
-{
-    TickerType_None,
-    TickerType_Horizontal,
-    TickerType_Vertical,
-};
-
-/// Ticker direction
-enum TickerDirection
-{
-    TickerDirection_Negative,
-    TickerDirection_Positive,
-};
-
-/// Text wrapping
-enum TextWrapping
-{
-    WRAP_NONE,
-    WRAP_WORD
-};
-
-/// Font description of a text block
-struct FontState
-{
-    String face;
-    unsigned size{};
-    bool bold{};
-    bool italic{};
-};
-
-struct BlockFormat
-{
-  /// Font description
-  FontState font;
-  /// Alignment
-  HorizontalAlignment align{HA_LEFT};
-
-  Color color{Color::WHITE};
-  bool underlined{};
-  bool striked{};
-  bool superscript{};
-  bool subscript{};
-};
-
-/// A block of text or an image
-struct TextBlock
-{
-    enum BlockType {
-        BlockType_Text,
-        BlockType_Image,
-        BlockType_Plugin,
-    };
-    /// Type of block
-    BlockType type{BlockType_Text};
-    /// Text or image/material source, or tag data of plugins
-    String text;
-
-    BlockFormat format;
-
-    float image_width{};
-    float image_height{};
-    bool is_visible{true};
-    bool is_line_break{};
-};
-
-/// A line inside the text layout
-struct TextLine
-{
-    int width{};
-    int height{};
-
-    int offset_x{};
-    int offset_y{};
-
-    HorizontalAlignment	align{HA_LEFT};
-    Vector<TextBlock> blocks;
-};
 
 /// RichTextScrolledOut
 URHO3D_EVENT(E_RICHTEXT_SCROLLED_OUT, RichTextScrolledOut) {

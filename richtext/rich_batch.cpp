@@ -1,11 +1,11 @@
 #include "rich_batch.h"
 #include "rich_widget.h"
-#include "core/profiler.h"
+#include "Urho3D/core/profiler.h"
 
 namespace Urho3D {
 
 /// Utility function to copy data from Quad structure to UIBatch.
-void AddQuadToUIBatch(UIBatch* batch, const Quad& q) 
+void AddQuadToUIBatch(UIBatch* batch, const Quad& q)
 {
     unsigned color = q.color_.ToUInt();
     unsigned begin = batch->vertexData_->Size();
@@ -78,13 +78,13 @@ inline void scale_quad(const Urho3D::Vector3& scale, Rect& vertices)
 inline bool clip_quad(Rect& vertices, Rect& texcoords, const Rect& clip_region)
 {
     float leftClip = (float)clip_region.min_.x_ - vertices.min_.x_;
-    if (leftClip > 0.0f) 
+    if (leftClip > 0.0f)
     {
-        if ((float)clip_region.min_.x_ < vertices.max_.x_) 
+        if ((float)clip_region.min_.x_ < vertices.max_.x_)
         {
             texcoords.min_.x_ += (texcoords.max_.x_ - texcoords.min_.x_) * leftClip / (vertices.max_.x_ - vertices.min_.x_);
             vertices.min_.x_ += leftClip;
-        } 
+        }
         else
             return false;
     }
@@ -96,14 +96,14 @@ inline bool clip_quad(Rect& vertices, Rect& texcoords, const Rect& clip_region)
       {
           texcoords.max_.x_ -= (texcoords.max_.x_ - texcoords.min_.x_) * rightClip / (vertices.max_.x_ - vertices.min_.x_);
           vertices.max_.x_ -= rightClip;
-      } 
+      }
       else
           return false;
     }
 
     float topClip = (float)clip_region.min_.y_ - vertices.min_.y_;
     if (topClip > 0.0f) {
-      if ((float)clip_region.min_.y_ < vertices.max_.y_) 
+      if ((float)clip_region.min_.y_ < vertices.max_.y_)
       {
         texcoords.min_.y_ += (texcoords.max_.y_ - texcoords.min_.y_) * topClip / (vertices.max_.y_ - vertices.min_.y_);
         vertices.min_.y_ += topClip;
@@ -136,7 +136,7 @@ RichWidgetBatch::RichWidgetBatch(Context* context)
  , Object(context)
  , num_batches_(0)
 {
-
+    uiElement_ = NULL;
 }
 
 RichWidgetBatch::~RichWidgetBatch()
@@ -161,10 +161,16 @@ void RichWidgetBatch::ClearQuads()
     SetDirty();
 }
 
+void RichWidgetBatch::GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor, UIElement* uiElement)
+{
+    uiElement_ = uiElement;
+    GetBatches(batches, vertexData, currentScissor);
+}
+
 void RichWidgetBatch::GetBatches(PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor)
 {
     // Draw all the quads to the UIBatch list
-    UIBatch batch(0, BLEND_ALPHA, currentScissor, texture_ ? texture_ : 0, &vertexData);
+    UIBatch batch(uiElement_, BLEND_ALPHA, currentScissor, texture_ ? texture_ : 0, &vertexData);
 
     float scalex = parent_widget_ ? parent_widget_->GetInternalScale().x_ : 1.0f;
     float scaley = parent_widget_ ? parent_widget_->GetInternalScale().y_ : 1.0f;
@@ -178,6 +184,11 @@ void RichWidgetBatch::GetBatches(PODVector<UIBatch>& batches, PODVector<float>& 
     padding.top_ *= scaley;
     padding.bottom_ *= scaley;
     Vector3 scale_vector(scalex, scaley, 1);
+
+    if(uiElement_ != NULL){
+        padding.left_ += uiElement_->GetPosition().x_;
+        padding.top_ += uiElement_->GetPosition().y_;
+    }
 
     bool quads_added = false;
     for (auto& quad : quads_)

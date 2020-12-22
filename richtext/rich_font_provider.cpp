@@ -1,8 +1,8 @@
 #include "rich_font_provider.h"
 #include "rich_widget.h"
 #include <Urho3D/Resource/ResourceCache.h>
-#include "../base_application.h"
-#include "core/logger.h"
+//#include "../base_application.h"
+//#include "core/logger.h"
 
 namespace Urho3D {
 
@@ -67,15 +67,15 @@ void RichFontProvider::CompleteRequest(unsigned request_id, const String& filena
         auto font = new Urho3D::Font(context_);
         font->SetName(filename);
         if (!font->LoadFile(filename)) {
-          WLOG_DEBUG(kAppLogTag) << "Failed to load font " << req_it->second_.second_.name.CString();
+//          WLOG_DEBUG(kAppLogTag) << "Failed to load font " << req_it->second_.second_.name.CString();
           delete font;
           font = nullptr;
         } else {
-          WLOG_DEBUG(kAppLogTag) << "Loaded font " << req_it->second_.second_.name.CString();
+//          WLOG_DEBUG(kAppLogTag) << "Loaded font " << req_it->second_.second_.name.CString();
           req_it->second_.first_->SetFontResource(font);
         }
       } else {
-        WLOG_DEBUG(kAppLogTag) << "Missing widget " << req_it->second_.second_.name.CString();
+ //       WLOG_DEBUG(kAppLogTag) << "Missing widget " << req_it->second_.second_.name.CString();
       }
       AddFontMapping(req_it->second_.second_.name, req_it->second_.second_.bold, req_it->second_.second_.italic, filename);
     } else {
@@ -88,7 +88,7 @@ void RichFontProvider::CompleteRequest(unsigned request_id, const String& filena
       }
 
       ResourceCache* cache = GetSubsystem<ResourceCache>();
-      // Use default font      
+      // Use default font
       if (!default_fontname.Empty() && cache->Exists(default_fontname)) {
         auto font = cache->GetResource<Font>(default_fontname);
         if (font) {

@@ -2,7 +2,7 @@
 #define __RICH_WIDGET_H__
 #pragma once
 
-#include "engine/richtext/rich_batch.h"
+#include "rich_batch.h"
 #include "Urho3D/Container/Ptr.h"
 #include "Urho3D/Math/Rect.h"
 #include "Urho3D/Graphics/VertexBuffer.h"
@@ -11,10 +11,89 @@
 #include "Urho3D/Core/Context.h"
 #include "Urho3D/Graphics/Geometry.h"
 #include "Urho3D/Graphics/Material.h"
-#include "Urho3D/Urho3DAll.h"
+//#include "Urho3D/Urho3DAll.h"
 
 namespace Urho3D
 {
+
+/// Ticker type
+enum TickerType
+{
+    TickerType_None,
+    TickerType_Horizontal,
+    TickerType_Vertical,
+};
+
+/// Ticker direction
+enum TickerDirection
+{
+    TickerDirection_Negative,
+    TickerDirection_Positive,
+};
+
+/// Text wrapping
+enum TextWrapping
+{
+    WRAP_NONE,
+    WRAP_WORD
+};
+
+/// Font description of a text block
+struct FontState
+{
+    String face;
+    unsigned size{};
+    bool bold{};
+    bool italic{};
+};
+
+struct BlockFormat
+{
+  /// Font description
+  FontState font;
+  /// Alignment
+  HorizontalAlignment align{HA_LEFT};
+
+  Color color{Color::WHITE};
+  bool underlined{};
+  bool striked{};
+  bool superscript{};
+  bool subscript{};
+};
+
+/// A block of text or an image
+struct TextBlock
+{
+    enum BlockType {
+        BlockType_Text,
+        BlockType_Image,
+        BlockType_Plugin,
+    };
+    /// Type of block
+    BlockType type{BlockType_Text};
+    /// Text or image/material source, or tag data of plugins
+    String text;
+
+    BlockFormat format;
+
+    float image_width{};
+    float image_height{};
+    bool is_visible{true};
+    bool is_line_break{};
+};
+
+/// A line inside the text layout
+struct TextLine
+{
+    int width{};
+    int height{};
+
+    int offset_x{};
+    int offset_y{};
+
+    HorizontalAlignment	align{HA_LEFT};
+    Vector<TextBlock> blocks;
+};
 
 class RichWidgetBatch;
 class RichWidget;
@@ -74,6 +153,9 @@ public:
     /// Get a list of cached batches.
     const Vector<SharedPtr<RichWidgetBatch>>& GetWidgetBatches() const { return items_; }
 
+    /// Draw all render items (UI).
+    virtual void Draw(UIElement* uiElement, PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor);
+
     /// Set the flags of the widget. Uses WidgetFlags_XXX combination.
     void SetFlags(unsigned flags);
     /// Get the widget flags.
@@ -116,6 +198,8 @@ public:
     VerticalAlignment GetVerticalAlignment() const { return align_v_; }
     /// Get content size.
     Vector2 GetContentSize() const { return content_size_; }
+    /// Set content size.
+    void SetContentSize(Vector2 newSize) { content_size_ = newSize; }
     /// Set whether text has fixed size on screen (pixel-perfect) regardless of distance to camera. Works best when combined with face camera rotation. Default false.
     void SetFixedScreenSize(bool enable);
     /// Return whether text has fixed screen size.
@@ -185,9 +269,10 @@ protected:
     /// Draw all render items.
     virtual void Draw();
     /// Update the geometries_
-    void UpdateTextBatches();
+    void UpdateTextBatches(UIElement* uiElement = NULL, PODVector<UIBatch>* batches = NULL, PODVector<float>* vertexData = NULL, const IntRect* currentScissor = NULL);
     /// Update the geometry_ materials and SourceBatch from the UIBatch list.
     void UpdateTextMaterials();
+    //void UpdateTextMaterials(UIElement* uiElement = NULL, PODVector<UIBatch>* batches = NULL, PODVector<float>* vertexData = NULL, const IntRect* currentScissor = NULL);
     /// Recalculate camera facing and fixed screen size.
     void CalculateFixedScreenSize(const FrameInfo& frame);
 

@@ -2,7 +2,7 @@
 #define __RICH_HTML_PARSER_H__
 #pragma once
 
-#include "engine/richtext/rich_text3d.h"
+#include "rich_text3d.h"
 
 namespace Urho3D
 {

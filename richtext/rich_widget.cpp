@@ -2,6 +2,8 @@
 #include "rich_batch_text.h"
 #include "rich_batch_image.h"
 #include "Urho3D/Core/Context.h"
+#include "Urho3D/Scene/Node.h"
+#include "Urho3D/Graphics/Camera.h"
 
 namespace Urho3D {
 
@@ -69,7 +71,7 @@ RichWidget::RichWidget(Context* context)
  , minAngle_(0.0f)
  , fixedScreenSize_(false)
 {
- 
+
 }
 
 RichWidget::~RichWidget()
@@ -140,7 +142,7 @@ RichWidgetBatch* RichWidget::CacheWidgetBatchT(StringHash type, StringHash id) {
     // Create a new batch of the specified type
     SharedPtr<RichWidgetBatch> new_batch;
     new_batch = DynamicCast<RichWidgetBatch>(context_->CreateObject(type));
-  
+
     if (new_batch)
     {
         new_batch->SetParentWidget(this);
@@ -236,7 +238,7 @@ void RichWidget::SetShadowOffset(const Vector4& shadow_offset)
 {
     bool modified = shadow_offset_ != shadow_offset;
     shadow_offset_ = shadow_offset;
-    if (modified) 
+    if (modified)
         SetFlags(WidgetFlags_GeometryDirty);
 }
 
@@ -258,12 +260,12 @@ void RichWidget::SetShadowEnabled(bool shadow_enabled)
 
 void RichWidget::SetHorizontalAlignment(HorizontalAlignment align)
 {
-  align_h_ = align; 
+  align_h_ = align;
   SetFlags(WidgetFlags_GeometryDirty);
 }
 
 void RichWidget::SetVerticalAlignment(VerticalAlignment align)
-{ 
+{
   align_v_ = align;
   SetFlags(WidgetFlags_GeometryDirty);
 }
@@ -292,14 +294,28 @@ void RichWidget::SetFaceCameraMode(FaceCameraMode mode)
     }
 }
 
-void RichWidget::SetFlags(unsigned flags) 
-{ 
+void RichWidget::SetFlags(unsigned flags)
+{
     flags_ |= flags;
     if (flags_ & WidgetFlags_GeometryDirty)
     {
         OnMarkedDirty(node_);
         MarkNetworkUpdate();
     }
+}
+
+void RichWidget::Draw(UIElement* uiElement, PODVector<UIBatch>& batches, PODVector<float>& vertexData, const IntRect& currentScissor)
+{
+    for (auto& item : items_)
+    {
+        item->SetDirty();
+    }
+
+    UpdateTextBatches(uiElement, &batches, &vertexData, &currentScissor);
+    //UpdateTextMaterials(uiElement, &batches, &vertexData, &currentScissor);
+    UpdateTextMaterials();
+
+    RemoveUnusedWidgetBatches();
 }
 
 void RichWidget::Draw()
@@ -337,96 +353,104 @@ void RichWidget::UpdateBatches(const FrameInfo& frame)
     }
 }
 
-void RichWidget::UpdateTextBatches()
+void RichWidget::UpdateTextBatches(UIElement* uiElement, PODVector<UIBatch>* batches, PODVector<float>* vertexData, const IntRect* currentScissor)
 {
-    ui_batches_.Clear();
-    ui_vertex_data_.Clear();
+    PODVector<UIBatch>& useBatches = (batches != NULL) ? (*batches) : ui_batches_;
+    PODVector<float>& useVertexData = (vertexData != NULL) ? (*vertexData) : ui_vertex_data_;
+    const IntRect& useScissor = (currentScissor != NULL) ? (*currentScissor) : IntRect::ZERO;
+
+    if(uiElement == NULL){
+        useBatches.Clear();
+        useVertexData.Clear();
+    }
     batch_index_to_item_index_.Clear();
 
     int batch_index = 0;
     for (unsigned i = 0; i < items_.Size(); ++i)
     {
         // Update the UIBatch list with every RichBatch data
-        items_[i]->GetBatches(ui_batches_, ui_vertex_data_, IntRect::ZERO);
+        items_[i]->GetBatches(useBatches, useVertexData, useScissor);
 
         // Map item index to UI batch index
         for (int c = 0; c < items_[i]->num_batches_; ++c)
           batch_index_to_item_index_.Push(i);
     }
 
-    Vector3 offset(Vector3::ZERO);
-    offset.z_ = GetDrawOrigin().z_;
+    if(uiElement == NULL){
+        Vector3 offset(Vector3::ZERO);
+        offset.z_ = GetDrawOrigin().z_;
 
-    Vector2 align_size = content_size_;
-    if (!clip_to_content_ && clip_region_ != IntRect::ZERO)
-      align_size = Vector2((float)clip_region_.Width(), (float)clip_region_.Height());
+        Vector2 align_size = content_size_;
+        if (!clip_to_content_ && clip_region_ != IntRect::ZERO)
+          align_size = Vector2((float)clip_region_.Width(), (float)clip_region_.Height());
 
-    switch (align_h_)
-    {
-    case HA_LEFT:
-        break;
-
-    case HA_CENTER:
-        offset.x_ -= (float)align_size.x_ * 0.5f;
-        break;
-
-    case HA_RIGHT:
-        offset.x_ -= align_size.x_;
-        break;
-
-    default:
-        break;
-    }
-
-    switch (align_v_)
-    {
-    case VA_TOP:
-        break;
-
-    case VA_CENTER:
-        offset.y_ -= align_size.y_ * 0.5f;
-        break;
-
-    case VA_BOTTOM:
-        offset.y_ -= align_size.y_;
-        break;
-
-    default:
-        break;
-    }
-
-    //boundingBox_.Clear();
-    boundingBox_.Define(Vector3(offset.x_, offset.y_) * unitsPerPixel, Vector3(align_size + Vector2(offset.x_, offset.y_)) * unitsPerPixel);
-    boundingBox_.min_.y_ = -boundingBox_.min_.y_;
-    boundingBox_.max_.y_ = -boundingBox_.max_.y_;
-
-    if (ui_vertex_data_.Size())
-    {
-        Color color;
-        for (unsigned i = 0; i < ui_vertex_data_.Size(); i += UI_VERTEX_SIZE)
+        switch (align_h_)
         {
-            Vector3& position = *(reinterpret_cast<Vector3*>(&ui_vertex_data_[i]));
-            position += offset;
-            position *= unitsPerPixel;
-            position.y_ = -position.y_;
-            // FIXME: may be slow converting back and forth between color <> uint
-            unsigned& color_uint = *(reinterpret_cast<unsigned*>(&ui_vertex_data_[i + 3]));
-            color.FromUInt(color_uint);
-            color.a_ = color.a_ * alpha_;
-            color_uint = color.ToUInt();
+        case HA_LEFT:
+            break;
+
+        case HA_CENTER:
+            offset.x_ -= (float)align_size.x_ * 0.5f;
+            break;
+
+        case HA_RIGHT:
+            offset.x_ -= align_size.x_;
+            break;
+
+        default:
+            break;
         }
 
-    } else {
-      //boundingBox_.Define(Vector3::ZERO, Vector3::ZERO);
-    }
+        switch (align_v_)
+        {
+        case VA_TOP:
+            break;
 
-    if (!clip_to_content_ && clip_region_ != IntRect::ZERO)
-    {
-      boundingBox_.Define(
-        Vector3(((float)clip_region_.left_ + offset.x_) * unitsPerPixel, -((float)clip_region_.top_ + offset.y_) * unitsPerPixel),
-        Vector3(((float)clip_region_.right_ + offset.x_) * unitsPerPixel, -((float)clip_region_.bottom_ + offset.y_) * unitsPerPixel));
+        case VA_CENTER:
+            offset.y_ -= align_size.y_ * 0.5f;
+            break;
+
+        case VA_BOTTOM:
+            offset.y_ -= align_size.y_;
+            break;
+
+        default:
+            break;
+        }
+
+    //boundingBox_.Clear();
+        boundingBox_.Define(Vector3(offset.x_, offset.y_) * unitsPerPixel, Vector3(align_size + Vector2(offset.x_, offset.y_)) * unitsPerPixel);
+        boundingBox_.min_.y_ = -boundingBox_.min_.y_;
+        boundingBox_.max_.y_ = -boundingBox_.max_.y_;
+
+        if (useVertexData.Size())
+        {
+            Color color;
+            for (unsigned i = 0; i < useVertexData.Size(); i += UI_VERTEX_SIZE)
+            {
+                Vector3& position = *(reinterpret_cast<Vector3*>(&useVertexData[i]));
+                position += offset;
+                position *= unitsPerPixel;
+                position.y_ = -position.y_;
+                // FIXME: may be slow converting back and forth between color <> uint
+                unsigned& color_uint = *(reinterpret_cast<unsigned*>(&useVertexData[i + 3]));
+                color.FromUInt(color_uint);
+                color.a_ = color.a_ * alpha_;
+                color_uint = color.ToUInt();
+            }
+
+        } else {
+          //boundingBox_.Define(Vector3::ZERO, Vector3::ZERO);
+        }
+
+        if (!clip_to_content_ && clip_region_ != IntRect::ZERO)
+        {
+          boundingBox_.Define(
+            Vector3(((float)clip_region_.left_ + offset.x_) * unitsPerPixel, -((float)clip_region_.top_ + offset.y_) * unitsPerPixel),
+            Vector3(((float)clip_region_.right_ + offset.x_) * unitsPerPixel, -((float)clip_region_.bottom_ + offset.y_) * unitsPerPixel));
+        }
+        worldBoundingBoxDirty_ = true;
     }
-    worldBoundingBoxDirty_ = true;
 }
 
 void RichWidget::UpdateTextMaterials()
@@ -457,6 +481,69 @@ void RichWidget::UpdateTextMaterials()
         }
     }
 }
+
+/*
+void RichWidget::UpdateTextMaterials(UIElement* uiElement, PODVector<UIBatch>* batches, PODVector<float>* vertexData, const IntRect* currentScissor)
+{
+    PODVector<UIBatch>& useBatches = (batches != NULL) ? (*batches) : ui_batches_;
+    PODVector<float>& useVertexData = (vertexData != NULL) ? (*vertexData) : ui_vertex_data_;
+    const IntRect& useScissor = (currentScissor != NULL) ? (*currentScissor) : IntRect::ZERO;
+
+    batches_.Resize(ui_batches_.Size());
+    geometries_.Resize(ui_batches_.Size());
+
+    for (unsigned i = 0; i < useBatches.Size(); ++i)
+    {
+        auto& batch = useBatches[i];
+
+        if (!geometries_[i])
+        {
+          Geometry* geometry = new Geometry(context_);///????? eigtl erstell ich ja keine geometry für UI?
+          geometry->SetVertexBuffer(0, vertex_buffer_);
+          batch.geometry_ = geometries_[i] = geometry;
+        }
+
+        batch.material_ = items_[batch_index_to_item_index_[i]]->material_;
+
+        Texture* texture = ui_batches_[i].texture_;
+        if (batch.material_ && texture) {
+            batch.material_->SetTexture(TU_DIFFUSE, texture);
+            batch.material_->SetRenderOrder(zbias_);
+#if defined(TARGET_LINUX)
+            batch.material_->SetDepthBias(Urho3D::BiasParameters(-0.0000023f - zbias_ * 0.0000023f, -0.0000023f - zbias_ * 0.0000023f));
+#endif
+        }
+    }
+}
+
+/// Prepare geometry for rendering. Called from a worker thread if possible (no GPU update.)
+void RichWidget::UpdateGeometry(const FrameInfo& frame)
+{
+    // In case is being rendered from multiple views, recalculate camera facing & fixed size
+    if (faceCameraMode_ != FC_NONE || fixedScreenSize_)
+        CalculateFixedScreenSize(frame);
+
+    if (IsFlagged(WidgetFlags_GeometryDirty))
+    {
+        for (unsigned i = 0; i < batches_.Size() && i < ui_batches_.Size(); ++i)
+        {
+            Geometry* geometry = geometries_[i];
+            batches_[i].geometry_ = geometry;
+            geometry->SetDrawRange(TRIANGLE_LIST, 0, 0, ui_batches_[i].vertexStart_ / UI_VERTEX_SIZE,
+              (ui_batches_[i].vertexEnd_ - ui_batches_[i].vertexStart_) / UI_VERTEX_SIZE);
+        }
+
+        if (ui_vertex_data_.Size())
+        {
+            unsigned vertexCount = ui_vertex_data_.Size() / UI_VERTEX_SIZE;
+            if (vertex_buffer_->GetVertexCount() != vertexCount)
+                vertex_buffer_->SetSize(vertexCount, MASK_POSITION | MASK_COLOR | MASK_TEXCOORD1);
+            vertex_buffer_->SetData(&ui_vertex_data_[0]);
+        }
+
+        ClearFlags(WidgetFlags_GeometryDirty);
+    }
+}*/
 
 /// Prepare geometry for rendering. Called from a worker thread if possible (no GPU update.)
 void RichWidget::UpdateGeometry(const FrameInfo& frame)
