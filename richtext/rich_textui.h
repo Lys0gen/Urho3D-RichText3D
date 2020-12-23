@@ -163,6 +163,10 @@ public:
     void SetWrapping(bool wrapping);
     /// Get wrapping.
     bool GetWrapping() const { return wrapping_ == WRAP_WORD; }
+    /// Set auto sizing.
+    void SetAutoSize(bool autoSizing);
+    /// Get auto sizing.
+    bool GetAutoSize() const { return autoSize_; }
     /// Set ticker type.
     //void SetTickerType(TickerType type);
     /// Get ticker type.
@@ -225,6 +229,8 @@ protected:
     //bool wordWrap_;
     /// Char positions dirty flag.
     bool charLocationsDirty_;
+    /// Automatic resizing attribute.
+    bool autoSize_;
     /// Selection start.
     unsigned selectionStart_;
     /// Selection length.

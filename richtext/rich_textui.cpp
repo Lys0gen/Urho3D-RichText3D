@@ -20,7 +20,6 @@
 #include "rich_html_parser.h"
 #include "rich_textui.h"
 
-
 namespace Urho3D
 {
 
@@ -86,6 +85,7 @@ RichTextUI::RichTextUI(Context* context) :
     UIElement(context),
     rowSpacing_(1.0f),
     charLocationsDirty_(true),
+    autoSize_(false),
     selectionStart_(0),
     selectionLength_(0),
     textEffect_(TE_NONE),
@@ -123,7 +123,7 @@ void RichTextUI::RegisterObject(Context* context)
 {
     context->RegisterFactory<RichTextUI>(UI_CATEGORY);
 
-	URHO3D_COPY_BASE_ATTRIBUTES(RichWidget);
+	//URHO3D_COPY_BASE_ATTRIBUTES(RichWidget);
 	URHO3D_COPY_BASE_ATTRIBUTES(Drawable);
 	URHO3D_COPY_BASE_ATTRIBUTES(UIElement);
 	URHO3D_UPDATE_ATTRIBUTE_DEFAULT_VALUE("Use Derived Opacity", false);
@@ -136,6 +136,7 @@ void RichTextUI::RegisterObject(Context* context)
 	URHO3D_ATTRIBUTE("Row Spacing", float, rowSpacing_, 1.0f, AM_FILE);
 	//URHO3D_ATTRIBUTE("Word Wrap", bool, wordWrap_, false, AM_FILE);
 	URHO3D_ACCESSOR_ATTRIBUTE("Word Wrap", GetWrapping, SetWrapping, bool, true, AM_DEFAULT);
+	URHO3D_ACCESSOR_ATTRIBUTE("Auto Size", GetAutoSize, SetAutoSize, bool, false, AM_DEFAULT);
 	//URHO3D_ACCESSOR_ATTRIBUTE("Auto Localizable", GetAutoLocalizable, SetAutoLocalizable, bool, false, AM_FILE);
 	//URHO3D_ENUM_ATTRIBUTE("Text Effect", textEffect_, textEffects, TE_NONE, AM_FILE);
 	URHO3D_ATTRIBUTE("Shadow Offset", IntVector2, shadowOffset_, IntVector2(1, 1), AM_FILE);
@@ -202,49 +203,6 @@ void RichTextUI::SetSingleLine(bool single_line)
     charLocationsDirty_ = true;
 }
 
-/*
-void RichTextUI::SetTickerType(TickerType type)
-{
-    ticker_type_ = type;
-    ResetTicker();
-}
-
-TickerType RichTextUI::GetTickerType() const
-{
-    return ticker_type_;
-}
-
-void RichTextUI::SetTickerDirection(TickerDirection direction)
-{
-    ticker_direction_ = direction;
-    ResetTicker();
-}
-
-TickerDirection RichTextUI::GetTickerDirection() const
-{
-    return ticker_direction_;
-}
-
-void RichTextUI::SetTickerSpeed(float pixelspersecond)
-{
-    ticker_speed_ = pixelspersecond;
-}
-
-float RichTextUI::GetTickerSpeed() const
-{
-    return ticker_speed_;
-}
-
-float RichTextUI::GetTickerPosition() const
-{
-    return ticker_position_;
-}
-
-void RichTextUI::SetTickerPosition(float tickerPosition)
-{
-    ticker_position_ = tickerPosition;
-}
-*/
 void RichTextUI::OnResize(const IntVector2& newSize, const IntVector2& delta)
 {
     if (wrapping_)
@@ -260,8 +218,6 @@ void RichTextUI::OnIndentSet()
 
 bool RichTextUI::SetFont(const String& fontName, float size)
 {
-    //auto* cache = GetSubsystem<ResourceCache>();
-    //return SetFont(cache->GetResource<Font>(fontName), size);
 	if(default_format_.font.face != fontName || default_format_.font.size != size){
 		default_format_.font.face = fontName;
 		default_format_.font.size = size;
@@ -273,25 +229,6 @@ bool RichTextUI::SetFont(const String& fontName, float size)
 	}
 	return false;
 }
-
-/*
-bool RichTextUI::SetFont(Font* font, float size)
-{
-    if (!font)
-    {
-        URHO3D_LOGERROR("Null font for RichtTextUI");
-        return false;
-    }
-
-    if (font != default_format_.font. || size != fontSize_)
-    {
-        font_ = font;
-        fontSize_ = Max(size, 1);
-        UpdateText();
-    }
-
-    return true;
-}*/
 
 bool RichTextUI::SetFontSize(float size)
 {
@@ -311,23 +248,10 @@ void RichTextUI::DecodeToUnicode()
 
 void RichTextUI::SetText(const String& text)
 {
-    /*if (autoLocalizable_)
-    {
-        stringId_ = text;
-        auto* l10n = GetSubsystem<Localization>();
-        text_ = l10n->Get(stringId_);
-    }
-    else
-    {
-        text_ = text;
-    }*/
-
     text_ = text;
 
     DecodeToUnicode();
-    //ValidateSelection();
     UpdateText();
-    //ResetTicker();
 }
 
 void RichTextUI::SetTextAlignment(HorizontalAlignment align)
@@ -358,39 +282,18 @@ void RichTextUI::SetWrapping(bool enable)
     }
 }
 
+void RichTextUI::SetAutoSize(bool autoSizing)
+{
+    autoSize_=autoSizing;
+}
+
 float RichTextUI::GetRowWidth(unsigned index) const
 {
     return index < rowWidths_.Size() ? rowWidths_[index] : 0;
 }
 
-Vector2 RichTextUI::GetCharPosition(unsigned index)
-{
-    if (charLocationsDirty_)
-       // UpdateCharLocations();
-    if (charLocations_.Empty())
-        return Vector2::ZERO;
-    // For convenience, return the position of the text ending if index exceeded
-    if (index > charLocations_.Size() - 1)
-        index = charLocations_.Size() - 1;
-    return charLocations_[index].position_;
-}
-
-Vector2 RichTextUI::GetCharSize(unsigned index)
-{
-    if (charLocationsDirty_)
-      //  UpdateCharLocations();
-    if (charLocations_.Size() < 2)
-        return Vector2::ZERO;
-    // For convenience, return the size of the last char if index exceeded (last size entry is zero)
-    if (index > charLocations_.Size() - 2)
-        index = charLocations_.Size() - 2;
-    return charLocations_[index].size_;
-}
-
 void RichTextUI::SetFontAttr(const ResourceRef& value)
 {
-    //auto* cache = GetSubsystem<ResourceCache>();
-    //font_ = cache->GetResource<Font>(value.name_);
     default_format_.font.face = value.name_;
     widget_->SetFlags(WidgetFlags_ContentChanged);
     charLocationsDirty_ = true;
@@ -404,16 +307,11 @@ ResourceRef RichTextUI::GetFontAttr() const
 void RichTextUI::SetTextAttr(const String& value)
 {
     text_ = value;
-    //if (autoLocalizable_)
-    //    stringId_ = value;
 }
 
 String RichTextUI::GetTextAttr() const
 {
-    //if (autoLocalizable_ && stringId_.Length())
-    //    return stringId_;
-    //else
-        return text_;
+    return text_;
 }
 
 bool RichTextUI::FilterImplicitAttributes(XMLElement& dest) const
@@ -535,6 +433,9 @@ void RichTextUI::UpdateText(bool onResize)
 
   HTMLParser::Parse(text_, markup_blocks, default_format_);
 
+  IntVector2 maxSize(0, 0);
+  bool determineSize = ((GetSize().x_ == 0 && GetSize().y_ == 0) || autoSize_) ? true : false;
+
   TextLine line;
   if (!single_line_) {
     Vector<TextLine> markupLines;
@@ -576,7 +477,11 @@ void RichTextUI::UpdateText(bool onResize)
       markupLines.Push(line);
 
     IntRect actual_clip_region(0, 0, GetSize().x_, GetSize().y_);//widget_->GetClipRegion();
-    widget_->SetClipRegion(actual_clip_region);
+    if(determineSize == true){
+        actual_clip_region = IntRect(0, 0, INT_MAX, INT_MAX);
+    }else{
+        widget_->SetClipRegion(actual_clip_region);
+    }
     //GetScreenPosition() GetPosition
     // do the word wrapping and layout positioning
     if (wrapping_ == WRAP_WORD && actual_clip_region.Width()) {
@@ -656,7 +561,6 @@ void RichTextUI::UpdateText(bool onResize)
                 // remove a char from this word until it can be fit in the current line
                 Vector2 newwordsize;
                 while (width_remain > 0 && !fit_word.Empty()) {
-                    //logError(std::string("NOT EMPTY: ")+fit_word.CString()+" | "+convertInt(the));
                   fit_word.Erase(fit_word.Length() - 1);
                   newwordsize = text_renderer->CalculateTextExtents(fit_word);
                   width_remain = (int)newwordsize.x_ - layout_width;
@@ -739,12 +643,14 @@ void RichTextUI::UpdateText(bool onResize)
                 //new_block.image_width = new_block.image_height * aspect;
 
                 // fit by width
-                new_block.image_width = (float)(new_block.image_width > 0 ? new_block.image_width : widget_->GetClipRegion().Width());
+                //new_block.image_width = (float)(new_block.image_width > 0 ? new_block.image_width : widget_->GetClipRegion().Width());
+                new_block.image_width = (float)(new_block.image_width > 0 ? new_block.image_width : actual_clip_region.Width());
                 new_block.image_height = new_block.image_width / aspect;
               }
 
               if (new_block.image_width == 0) {
-                new_block.image_width = (float)widget_->GetClipRegion().Width();
+                //new_block.image_width = (float)widget_->GetClipRegion().Width();
+                new_block.image_width = (float)actual_clip_region.Width();
               }
               new_line.blocks.Push(new_block);
 
@@ -757,6 +663,9 @@ void RichTextUI::UpdateText(bool onResize)
           new_line.offset_y = draw_offset_y;
           draw_offset_y += new_line.height;
         }
+
+        maxSize.x_ = Max(draw_offset_x, maxSize.x_);
+        maxSize.y_ = Max(draw_offset_y, maxSize.y_);
 
         lines_.Push(new_line);
         new_line.blocks.Clear();
@@ -781,26 +690,16 @@ void RichTextUI::UpdateText(bool onResize)
     lines_.Push(line);
   }
 
-  ///todo: determine element size automatically if not fixed
 
-
-        /*if (!height)
-            height = rowHeight;
-
-        // Set minimum and current size according to the text size, but respect fixed width if set
-        if (!IsFixedWidth())
-        {
-            if (wordWrap_)
-                SetMinWidth(0);
-            else
-            {
-                SetMinWidth(width);
-                SetWidth(width);
-            }
+    if(determineSize){// && !IsFixedSize()){
+        if(!maxSize.y_){
+            maxSize.y_ = GetFontSize();
         }
-        SetFixedHeight(height);*/
-
-
+        if(GetWidth() != maxSize.x_ || GetHeight() != maxSize.y_){
+            widget_->SetClipRegion(IntRect(0, 0, maxSize.x_, maxSize.y_));
+            SetFixedSize(maxSize);
+        }
+    }
 
     widget_->ClearFlags(WidgetFlags_ContentChanged);
     widget_->SetFlags(WidgetFlags_GeometryDirty);
