@@ -19,6 +19,8 @@
 #include "Urho3D/Core/StringUtils.h"
 #include "rich_html_parser.h"
 #include "rich_textui.h"
+#include <limits.h>
+
 
 namespace Urho3D
 {
@@ -505,6 +507,8 @@ void RichTextUI::UpdateText(bool onResize)
         new_line.offset_y = 0;
         new_line.align = line->align;
 
+        int maxRowHeight = 0;
+
         // reset the x offset of the current line
         draw_offset_x = layout_x;
 
@@ -549,6 +553,7 @@ void RichTextUI::UpdateText(bool onResize)
               Vector2 wordsize = text_renderer->CalculateTextExtents(the_word);
 
               new_line.height = Max<int>((int)wordsize.y_, new_line.height);
+              maxRowHeight = Max<int>(new_line.height, (int)text_renderer->GetRowHeight());
 
               bool needs_new_line = (draw_offset_x + wordsize.x_) > layout_width;
               bool is_wider_than_line = wordsize.x_ > layout_width;
@@ -665,7 +670,7 @@ void RichTextUI::UpdateText(bool onResize)
         }
 
         maxSize.x_ = Max(draw_offset_x, maxSize.x_);
-        maxSize.y_ = Max(draw_offset_y, maxSize.y_);
+        maxSize.y_ = maxSize.y_ + Max(new_line.height, maxRowHeight);//Max(draw_offset_y, maxSize.y_);
 
         lines_.Push(new_line);
         new_line.blocks.Clear();
