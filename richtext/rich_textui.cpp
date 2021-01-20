@@ -126,7 +126,7 @@ void RichTextUI::RegisterObject(Context* context)
     context->RegisterFactory<RichTextUI>(UI_CATEGORY);
 
 	//URHO3D_COPY_BASE_ATTRIBUTES(RichWidget);
-	URHO3D_COPY_BASE_ATTRIBUTES(Drawable);
+	//URHO3D_COPY_BASE_ATTRIBUTES(Drawable);
 	URHO3D_COPY_BASE_ATTRIBUTES(UIElement);
 	URHO3D_UPDATE_ATTRIBUTE_DEFAULT_VALUE("Use Derived Opacity", false);
 	URHO3D_MIXED_ACCESSOR_ATTRIBUTE("Font", GetFontAttr, SetFontAttr, ResourceRef, ResourceRef(Font::GetTypeStatic()), AM_FILE);
